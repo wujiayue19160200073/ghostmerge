@@ -17,6 +17,7 @@ import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
+from typing import Optional
 
 USERS = '''\
 """User lookup. Deliberately tiny."""
@@ -163,7 +164,7 @@ def _commit(cwd: str, message: str) -> None:
     _git(cwd, "commit", "-q", "-m", message)
 
 
-def build_demo_repo(root: str | None = None) -> DemoRepo:
+def build_demo_repo(root: Optional[str] = None) -> DemoRepo:
     root = root or tempfile.mkdtemp(prefix="ghostmerge-demo-")
     os.makedirs(os.path.join(root, "tests"), exist_ok=True)
 
