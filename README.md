@@ -55,7 +55,7 @@ Your test suite is the only thing that can catch it, and it has never been run o
 ## Try it in one command
 
 ```bash
-pip install ghostmerge        # or: pipx install ghostmerge
+pipx install git+https://github.com/wujiayue19160200073/ghostmerge
 ghostmerge demo
 ```
 
@@ -64,9 +64,19 @@ ghostmerge demo
 ## Install
 
 ```bash
-pipx install ghostmerge       # recommended: isolated, on PATH
-pip install ghostmerge
+# recommended: isolated, on PATH
+pipx install git+https://github.com/wujiayue19160200073/ghostmerge
+
+# or into the current environment
+pip install git+https://github.com/wujiayue19160200073/ghostmerge
+
+# or from a clone, if you want to read the code first
+git clone https://github.com/wujiayue19160200073/ghostmerge
+cd ghostmerge && pip install -e .
 ```
+
+Not on PyPI yet — the name is reserved for this project, but publishing is a
+separate step and I would rather the first command in the README actually work.
 
 Requires **git ≥ 2.38** (`git merge-tree --write-tree`) and **Python ≥ 3.9**. No dependencies, no network, no telemetry.
 

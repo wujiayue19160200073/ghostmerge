@@ -57,7 +57,7 @@ $ ghostmerge check --all --test "pytest -q"
 ## 一条命令先看效果
 
 ```bash
-pip install ghostmerge
+pipx install git+https://github.com/wujiayue19160200073/ghostmerge
 ghostmerge demo
 ```
 
@@ -66,9 +66,18 @@ ghostmerge demo
 ## 安装
 
 ```bash
-pipx install ghostmerge       # 推荐：隔离环境，直接进 PATH
-pip install ghostmerge
+# 推荐：隔离环境，装完直接在 PATH 上
+pipx install git+https://github.com/wujiayue19160200073/ghostmerge
+
+# 或者装进当前环境
+pip install git+https://github.com/wujiayue19160200073/ghostmerge
+
+# 想先看代码再装
+git clone https://github.com/wujiayue19160200073/ghostmerge
+cd ghostmerge && pip install -e .
 ```
+
+还没发 PyPI——名字留着了，但发布是另一步，我不想让 README 里第一条命令是假的。
 
 需要 **git ≥ 2.38**（`git merge-tree --write-tree`）和 **Python ≥ 3.9**。零依赖、不联网、不上报任何数据。
 
