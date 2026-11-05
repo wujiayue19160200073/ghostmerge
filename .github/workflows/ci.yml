@@ -24,41 +24,22 @@ jobs:
       - name: Environment
         # Failures here have been specific to one runner's git build or temp
         # directory, so record what the job actually ran on.
-        shell: bash
         run: |
           git --version
           python -VV
           python -c "import sys, tempfile; print('platform', sys.platform); print('tempdir', tempfile.gettempdir())"
       - name: Run tests
-        # `bash` on all three runners so the log handling below is written once
-        # instead of three times. The failure text is republished as an
-        # annotation: job logs need an authenticated API call, annotations are
-        # public, so this is the difference between "I can see why CI broke" and
-        # "CI is red, no idea why".
-        shell: bash
-        run: |
-          log=$(mktemp)
-          set +e
-          PYTHONPATH=src python -m unittest discover -s tests -t tests -v > "$log" 2>&1
-          code=$?
-          tail -25 "$log"
-          if [ "$code" -ne 0 ]; then
-            msg=$(awk '{printf "%s%%0A", $0}' "$log" | tail -c 3000)
-            echo "::error title=unit tests failed (${{ matrix.os }}, py${{ matrix.python }})::$msg"
-          fi
-          exit "$code"
+        # tools/ci_step.py republishes the failure as an annotation: job logs
+        # need an authenticated API call, annotations are public. Keeping that
+        # logic in Python rather than in shell keeps this file to one line per
+        # step, so it stays reviewable and cannot drift per platform.
+        run: python tools/ci_step.py "tests-${{ matrix.os }}-${{ matrix.python }}" python -m unittest discover -s tests -t tests -v
+        env:
+          PYTHONPATH: src
       - name: Smoke test the demo
         # The demo is the first thing a new user runs; if it breaks, everything
         # else is academic.
-        shell: bash
-        run: |
-          log=$(mktemp)
-          set +e
-          NO_COLOR=1 PYTHONPATH=src python -m ghostmerge demo --yes > "$log" 2>&1
-          code=$?
-          cat "$log"
-          if [ "$code" -ne 0 ]; then
-            msg=$(awk '{printf "%s%%0A", $0}' "$log" | tail -c 3000)
-            echo "::error title=demo smoke test failed (exit $code, ${{ matrix.os }}, py${{ matrix.python }})::$msg"
-          fi
-          exit "$code"
+        run: python tools/ci_step.py "demo-${{ matrix.os }}-${{ matrix.python }}" python -m ghostmerge demo --yes
+        env:
+          PYTHONPATH: src
+          NO_COLOR: "1"
