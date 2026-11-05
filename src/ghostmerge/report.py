@@ -12,6 +12,7 @@ import re
 import sys
 from typing import Optional
 
+from . import glyphs
 from . import trial as trial_mod
 from .blame import Clue
 from .trial import Plan, Trial
@@ -50,12 +51,14 @@ def supports_color() -> bool:
     return True
 
 
+# Symbol names, not literal glyphs: see glyphs.py for why these cannot be
+# hardcoded. Everything is resolved at print time against stdout's encoding.
 STATUS_STYLE = {
-    trial_mod.GHOST: ("✗", RED, "GHOST"),
-    trial_mod.PASS: ("✓", GREEN, "pass"),
-    trial_mod.CONFLICT: ("—", DIM, "conflict"),
-    trial_mod.TIMEOUT: ("!", YELLOW, "timeout"),
-    trial_mod.ERROR: ("!", YELLOW, "error"),
+    trial_mod.GHOST: ("cross", RED, "GHOST"),
+    trial_mod.PASS: ("tick", GREEN, "pass"),
+    trial_mod.CONFLICT: ("dash", DIM, "conflict"),
+    trial_mod.TIMEOUT: ("bang", YELLOW, "timeout"),
+    trial_mod.ERROR: ("bang", YELLOW, "error"),
 }
 
 
@@ -77,13 +80,14 @@ def _headline(tally: dict[str, int]) -> str:
 
 
 def _status_line(item: Trial, paint: Paint) -> str:
-    icon, color, label = STATUS_STYLE.get(item.status, ("?", DIM, item.status))
+    icon_name, color, label = STATUS_STYLE.get(item.status, ("bang", DIM, item.status))
+    icon = glyphs.sym(icon_name)
     seconds = f"{item.duration:.1f}s" if item.duration else ""
-    parts = [f"  {paint(icon, color, BOLD)} {item.a} {paint('×', DIM)} {item.b}",
+    parts = [f"  {paint(icon, color, BOLD)} {item.a} {paint(glyphs.sym('times'), DIM)} {item.b}",
              paint(label, color)]
     if seconds:
         parts.append(paint(seconds, DIM))
-    line = "  ·  ".join(parts)
+    line = f"  {glyphs.sym('dot')}  ".join(parts)
     if item.status == trial_mod.CONFLICT and item.note:
         line += paint("  (git reports this one itself)", DIM)
     elif item.status == trial_mod.TIMEOUT:
@@ -96,7 +100,7 @@ def _status_line(item: Trial, paint: Paint) -> str:
 def _ghost_block(item: Trial, clues: list[Clue], paint: Paint) -> list[str]:
     lines: list[str] = []
     lines.append("")
-    lines.append(f"  {paint('✗', RED, BOLD)} {paint(item.a, BOLD)} {paint('×', DIM)} {paint(item.b, BOLD)}")
+    lines.append(f"  {paint(glyphs.sym('cross'), RED, BOLD)} {paint(item.a, BOLD)} {paint(glyphs.sym('times'), DIM)} {paint(item.b, BOLD)}")
     code = item.test_code if item.test_code is not None else "?"
     lines.append(f"    {paint('merge', DIM)}  clean    git saw no conflict at all")
     lines.append(f"    {paint('tests', DIM)}  {paint('FAILED', RED)}   exit {code}")
@@ -105,7 +109,7 @@ def _ghost_block(item: Trial, clues: list[Clue], paint: Paint) -> list[str]:
     if failure:
         lines.append("")
         for row in failure:
-            lines.append(f"    {paint('│', RED)} {row}")
+            lines.append(f"    {paint(glyphs.sym('bar'), RED)} {row}")
 
     explained = [c for c in clues if c.explained]
     if explained:
@@ -201,8 +205,8 @@ def render_terminal(
 
     out.append("")
     out.append(
-        f"  {paint('ghostmerge', BOLD)}  {len(plan.branches)} branches · {len(plan.pairs)} pairs"
-        f" · base {paint(plan.base, CYAN)}"
+        f"  {paint('ghostmerge', BOLD)}  {len(plan.branches)} branches {glyphs.sym('dot')} {len(plan.pairs)} pairs"
+        f" {glyphs.sym('dot')} base {paint(plan.base, CYAN)}"
     )
     out.append("")
     out.append(f"  {_headline(tally)}")
@@ -219,7 +223,8 @@ def render_terminal(
         out.append(paint(f"  {len(ghosts) - shown} more not shown; raise --detail-limit", DIM))
 
     out.append("")
-    out.append(paint("  ── all pairs " + "─" * 40, DIM))
+    rule = glyphs.sym("rule")
+    out.append(paint(f"  {rule}{rule} all pairs " + rule * 40, DIM))
     for item in trials:
         if not show_passed and item.status in (trial_mod.PASS,):
             continue
@@ -271,7 +276,7 @@ def render_markdown(plan: Plan, trials: list[Trial], clues: dict[str, list[Clue]
         elif item.status == trial_mod.PASS:
             tests = "passed"
         elif item.status == trial_mod.CONFLICT:
-            tests = "— (not run)"
+            tests = f"{glyphs.sym('dash')} (not run)"
         elif item.status == trial_mod.TIMEOUT:
             tests = "timeout"
         else:
@@ -280,7 +285,7 @@ def render_markdown(plan: Plan, trials: list[Trial], clues: dict[str, list[Clue]
 
     for item in ghosts:
         out.append("")
-        out.append(f"### `{item.a}` × `{item.b}`")
+        out.append(f"### `{item.a}` {glyphs.sym('times')} `{item.b}`")
         out.append("")
         rows = _failure_excerpt(item.output, limit=15)
         if rows:
@@ -301,8 +306,10 @@ def render_markdown(plan: Plan, trials: list[Trial], clues: dict[str, list[Clue]
                 out.append(f"- `{caller.branch}` still calls it at `{caller.file}:{caller.line}`")
 
     out.append("")
-    out.append(f"<sub>base `{plan.base}` · {len(plan.branches)} branches · failed "
-               f"{tally.get(trial_mod.GHOST, 0)}</sub>")
+    out.append(
+        f"<sub>base `{plan.base}` {glyphs.sym('dot')} {len(plan.branches)} branches {glyphs.sym('dot')} failed "
+        f"{tally.get(trial_mod.GHOST, 0)}</sub>"
+    )
     return "\n".join(out)
 
 

@@ -23,7 +23,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Optional
 
-from . import gitcmd
+from . import gitcmd, glyphs
 from .gitcmd import MergeProbe
 
 PASS = "pass"
@@ -48,6 +48,10 @@ class Trial:
     output: str = ""
     duration: float = 0.0
     commit: str = ""
+    # Where this pair was actually checked out. Kept so the "everything we create
+    # lives outside your repo" promise can be asserted rather than assumed; the
+    # directory is gone by the time anyone reads this.
+    worktree: str = ""
     note: str = ""
 
     @property
@@ -56,13 +60,13 @@ class Trial:
 
     @property
     def label(self) -> str:
-        return f"{self.a} × {self.b}"
+        return f"{self.a} {glyphs.sym('times')} {self.b}"
 
     def tail(self, lines: int = OUTPUT_LINES) -> str:
         rows = [r for r in self.output.splitlines() if r.strip()]
         if len(rows) <= lines:
             return "\n".join(rows)
-        return "\n".join(["…"] + rows[-lines:])
+        return "\n".join([glyphs.sym("ellipsis")] + rows[-lines:])
 
 
 @dataclass
@@ -202,12 +206,16 @@ def run_trial(
         duration = time.monotonic() - started
 
         if timed_out:
-            return Trial(a, b, TIMEOUT, probe=probe, output=output, duration=duration, commit=commit)
+            return Trial(a, b, TIMEOUT, probe=probe, output=output, duration=duration, commit=commit,
+                     worktree=worktree_path)
         if code is None:
-            return Trial(a, b, ERROR, probe=probe, output=output, note="test command could not run", duration=duration, commit=commit)
+            return Trial(a, b, ERROR, probe=probe, output=output, note="test command could not run",
+                     duration=duration, commit=commit, worktree=worktree_path)
         if code != 0:
-            return Trial(a, b, GHOST, probe=probe, test_code=code, output=output, duration=duration, commit=commit)
-        return Trial(a, b, PASS, probe=probe, test_code=0, output=output, duration=duration, commit=commit)
+            return Trial(a, b, GHOST, probe=probe, test_code=code, output=output, duration=duration,
+                     commit=commit, worktree=worktree_path)
+        return Trial(a, b, PASS, probe=probe, test_code=0, output=output, duration=duration,
+                     commit=commit, worktree=worktree_path)
 
     except gitcmd.GitError as exc:
         return Trial(a, b, ERROR, probe=probe, note=str(exc), duration=time.monotonic() - started)

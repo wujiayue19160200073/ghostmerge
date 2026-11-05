@@ -51,11 +51,29 @@ class TrialMergeTests(unittest.TestCase):
         worktrees = gitcmd.list_worktrees(cwd=self.root)
         self.assertEqual(len(worktrees), 1, worktrees)
 
-    def test_temp_worktree_lived_outside_the_repo(self):
+    def test_trial_worktrees_lived_outside_the_repo(self):
         # A worktree inside the repo gets picked up by test runners, linters and
-        # `git status`. Everything we create must be elsewhere.
-        for path, _branch in gitcmd.list_worktrees(cwd=self.root):
-            self.assertFalse(path.startswith(self.root.rstrip("\\/")), path)
+        # `git status`, and the user's own tooling starts reporting on our
+        # scratch directory. The original version of this test walked
+        # `git worktree list` *after* cleanup, when only the main worktree was
+        # left, and compared raw strings — so it passed for the wrong reason on
+        # macOS (/tmp is a symlink to /private/tmp) and Windows (git prints
+        # forward slashes), and failed on Linux, where the strings match exactly.
+        # Each Trial now records the directory it used, so this asserts the real
+        # thing instead of inferring it from what survived.
+        root = os.path.realpath(self.root)
+        checked = 0
+        for item in self.trials:
+            if not item.worktree:
+                continue
+            checked += 1
+            resolved = os.path.realpath(item.worktree)
+            self.assertNotEqual(resolved, root, "a trial reused the repo itself")
+            self.assertFalse(
+                resolved.startswith(root + os.sep),
+                f"a trial worktree lived inside the repo: {item.worktree}",
+            )
+        self.assertGreaterEqual(checked, 1, "no trial recorded a worktree path")
 
     def test_plan_skips_nothing_when_branches_diverged(self):
         self.assertEqual(len(self.plan.pairs), 3)

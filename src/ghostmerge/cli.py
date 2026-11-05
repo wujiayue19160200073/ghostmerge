@@ -18,7 +18,7 @@ import os
 import sys
 from typing import Optional
 
-from . import __version__, blame, gitcmd, report
+from . import __version__, blame, gitcmd, glyphs, report
 from . import trial as trial_mod
 from .demo import build_demo_repo
 
@@ -186,11 +186,12 @@ def cmd_check(args) -> int:
         print("\n  No tests were run. Drop --dry-run to start checking.\n")
         return EXIT_OK
 
-    # stdout is a contract in --json mode: one JSON document, nothing else.
-    # A friendly header line here would break every consumer that pipes it into
-    # `jq` or json.load.
-    if not args.quiet and not args.json:
-        print(f"\n  ghostmerge {__version__} · base {base} · {len(plan.pairs)} pairs")
+    # stdout is a contract in --json and --markdown mode: one document, nothing
+    # else. A friendly header line here breaks every consumer that pipes it into
+    # `jq`, json.load, or `>> pull-request-comment.md`.
+    machine_output = args.json or args.markdown
+    if not args.quiet and not machine_output:
+        print(f"\n  ghostmerge {__version__} {glyphs.sym('dot')} base {base} {glyphs.sym('dot')} {len(plan.pairs)} pairs")
         print(f"  test: {test_command}")
         print("  Every merge runs in a throwaway worktree; your working directory is untouched.\n")
 
@@ -199,7 +200,7 @@ def cmd_check(args) -> int:
             # A \r progress bar piped into a file becomes a single unreadable
             # line of every pair name jammed together. Only animate a terminal.
             return
-        sys.stdout.write(f"\r  [{index}/{total}] {a} × {b}".ljust(70))
+        sys.stdout.write(f"\r  [{index}/{total}] {a} {glyphs.sym('times')} {b}".ljust(70))
         sys.stdout.flush()
 
     trials = trial_mod.run_plan(
@@ -208,9 +209,9 @@ def cmd_check(args) -> int:
         cwd=root,
         timeout=timeout,
         jobs=args.jobs,
-        progress=None if (args.quiet or args.json) else progress,
+        progress=None if (args.quiet or machine_output) else progress,
     )
-    if not args.quiet and not args.json and sys.stdout.isatty():
+    if not args.quiet and not machine_output and sys.stdout.isatty():
         sys.stdout.write("\r" + " " * 72 + "\r")
 
     clue_map = {}
@@ -237,12 +238,12 @@ def cmd_check(args) -> int:
 
 
 def cmd_demo(args) -> int:
-    print("\n  Building a demo repository (4 files, 3 branches, 1 real ghost merge)…\n")
+    print(f"\n  Building a demo repository (4 files, 3 branches, 1 real ghost merge){glyphs.sym('ellipsis')}\n")
     repo = build_demo_repo()
     print(f"  repo: {repo.path}")
     for branch in repo.branches:
         print(f"    branch {branch}")
-    print("\n  Each branch passes its own tests. Press Enter to run the check (Ctrl-C to cancel)…")
+    print(f"\n  Each branch passes its own tests. Press Enter to run the check (Ctrl-C to cancel){glyphs.sym('ellipsis')}")
     if not args.yes and sys.stdin.isatty():
         try:
             input()
@@ -272,7 +273,7 @@ def cmd_demo(args) -> int:
     finally:
         os.chdir(cwd)
 
-    print(f"  The demo repo is still at {repo.path} — go look, or delete it.\n")
+    print(f"  The demo repo is still at {repo.path} {glyphs.sym('dash')} go look, or delete it.\n")
     return EXIT_OK if code in (EXIT_OK, EXIT_GHOST) else code
 
 
