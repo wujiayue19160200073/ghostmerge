@@ -1,5 +1,7 @@
 # ghostmerge
 
+[![ci](https://github.com/wujiayue19160200073/ghostmerge/actions/workflows/ci.yml/badge.svg)](https://github.com/wujiayue19160200073/ghostmerge/actions/workflows/ci.yml)
+
 **Git says the merge is clean. Your tests say `ImportError`.**
 
 `ghostmerge` finds the merges that git reports as conflict-free but that break when the merged code actually runs. It does this by *running* the merged code — in a throwaway worktree, with your own test command — instead of guessing from the diff.

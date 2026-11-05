@@ -1,5 +1,7 @@
 # ghostmerge
 
+[![ci](https://github.com/wujiayue19160200073/ghostmerge/actions/workflows/ci.yml/badge.svg)](https://github.com/wujiayue19160200073/ghostmerge/actions/workflows/ci.yml)
+
 **git 说这个合并是干净的。测试说它 `ImportError`。**
 
 `ghostmerge` 找出那些 git 判定为“零冲突”、但合并之后一跑就崩的合并。方法是**真的把合并结果跑一遍**：在临时工作树里，用你自己的测试命令，而不是对着 diff 猜。
