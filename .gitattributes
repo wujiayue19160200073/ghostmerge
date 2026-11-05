@@ -1,0 +1,7 @@
+# Normalise line endings on checkout so a Windows contributor and a Linux CI
+# run produce the same diffs. The demo repo is generated at runtime, so this
+# only affects tracked source.
+* text=auto eol=lf
+
+*.png binary
+*.svg text eol=lf

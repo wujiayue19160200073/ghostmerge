@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# Test / tooling
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ghostmerge: trial worktrees live in the system temp dir, but a crashed run
+# can leave a registry entry or a stale dir behind. Never commit them.
+ghostmerge-*/
+ghostmerge-trial*/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

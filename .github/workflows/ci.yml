@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # The tool shells out to git and creates worktrees; behaviour differs
+        # enough between the three platforms that testing only on Linux would
+        # miss real breakage (path separators, process trees, temp dirs).
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Show git version
+        run: git --version
+      - name: Run tests
+        run: python -m unittest discover -s tests -t tests
+        env:
+          PYTHONPATH: src
+      - name: Smoke test the demo
+        # The demo is the first thing a new user runs; if it breaks, everything
+        # else is academic.
+        run: python -m ghostmerge demo --yes
+        env:
+          PYTHONPATH: src
+          NO_COLOR: "1"

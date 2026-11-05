@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ghostmerge"
+version = "0.1.0"
+description = "Find the merges git calls clean and your tests call broken."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "ghostmerge contributors" }]
+keywords = ["git", "merge", "merge-tree", "mutation", "testing", "ai-agents", "worktree"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Version Control :: Git",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/wujiayue19160200073/ghostmerge"
+
+[project.scripts]
+ghostmerge = "ghostmerge.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
