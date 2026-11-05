@@ -21,16 +21,44 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - name: Show git version
-        run: git --version
+      - name: Environment
+        # Failures here have been specific to one runner's git build or temp
+        # directory, so record what the job actually ran on.
+        shell: bash
+        run: |
+          git --version
+          python -VV
+          python -c "import sys, tempfile; print('platform', sys.platform); print('tempdir', tempfile.gettempdir())"
       - name: Run tests
-        run: python -m unittest discover -s tests -t tests
-        env:
-          PYTHONPATH: src
+        # `bash` on all three runners so the log handling below is written once
+        # instead of three times. The failure text is republished as an
+        # annotation: job logs need an authenticated API call, annotations are
+        # public, so this is the difference between "I can see why CI broke" and
+        # "CI is red, no idea why".
+        shell: bash
+        run: |
+          log=$(mktemp)
+          set +e
+          PYTHONPATH=src python -m unittest discover -s tests -t tests -v > "$log" 2>&1
+          code=$?
+          tail -25 "$log"
+          if [ "$code" -ne 0 ]; then
+            msg=$(awk '{printf "%s%%0A", $0}' "$log" | tail -c 3000)
+            echo "::error title=unit tests failed (${{ matrix.os }}, py${{ matrix.python }})::$msg"
+          fi
+          exit "$code"
       - name: Smoke test the demo
         # The demo is the first thing a new user runs; if it breaks, everything
         # else is academic.
-        run: python -m ghostmerge demo --yes
-        env:
-          PYTHONPATH: src
-          NO_COLOR: "1"
+        shell: bash
+        run: |
+          log=$(mktemp)
+          set +e
+          NO_COLOR=1 PYTHONPATH=src python -m ghostmerge demo --yes > "$log" 2>&1
+          code=$?
+          cat "$log"
+          if [ "$code" -ne 0 ]; then
+            msg=$(awk '{printf "%s%%0A", $0}' "$log" | tail -c 3000)
+            echo "::error title=demo smoke test failed (exit $code, ${{ matrix.os }}, py${{ matrix.python }})::$msg"
+          fi
+          exit "$code"
