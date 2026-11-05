@@ -360,7 +360,29 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _harden_output() -> None:
+    """Never die with a traceback while printing the result.
+
+    glyphs.py covers the symbols *we* write, but the report also contains text we
+    do not control: the failing test's output, which may hold any character the
+    user's source code contains — accented identifiers, CJK, an emoji in an
+    assertion message. On a cp1252 or ASCII stream those raise
+    UnicodeEncodeError, and the process dies after all the work is done.
+
+    Only `errors` is changed, not the encoding: forcing UTF-8 here would produce
+    mojibake on a Windows console that still renders cp1252. Degrading one
+    character to `?` is the cheaper failure.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors="replace")
+        except (AttributeError, ValueError, OSError):
+            pass
+
+
 def main(argv: Optional[list[str]] = None) -> int:
+    _harden_output()
+    glyphs.reset()
     parser = build_parser()
     args = parser.parse_args(argv)
     if not getattr(args, "func", None):

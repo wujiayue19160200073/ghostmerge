@@ -1,6 +1,7 @@
 import contextlib
 import io
 import os
+import subprocess
 import sys
 import unittest
 
@@ -118,6 +119,32 @@ class MarkdownTests(unittest.TestCase):
         body = report.render_markdown(plan, trials, {})
         self.assertTrue(body.startswith("## ghostmerge:"), body[:60])
         self.assertNotIn("\r", body)
+
+
+class OutputHardeningTests(unittest.TestCase):
+    """Text we do not control must not be able to kill the process.
+
+    The report embeds the failing test's own output, which can contain any
+    character the user's source code has. glyphs.py only knows our own symbols,
+    so the CLI also switches stdout to errors="replace"; this proves an emoji
+    survives a cp1252 stream instead of raising UnicodeEncodeError.
+    """
+
+    def test_arbitrary_unicode_survives_a_cp1252_stream(self):
+        script = (
+            "from ghostmerge.cli import _harden_output\n"
+            "_harden_output()\n"
+            "print('\\U0001f389 \\u4e2d\\u6587 done')\n"
+        )
+        src = os.path.join(os.path.dirname(__file__), "..", "src")
+        env = dict(os.environ, PYTHONPATH=os.path.abspath(src), PYTHONIOENCODING="cp1252")
+        proc = subprocess.run(
+            [sys.executable, "-c", script], capture_output=True, env=env, timeout=120,
+        )
+        self.assertEqual(
+            proc.returncode, 0,
+            proc.stderr.decode("utf-8", "replace")[-800:],
+        )
 
 
 if __name__ == "__main__":
